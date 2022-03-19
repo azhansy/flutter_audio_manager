@@ -71,7 +71,7 @@ class _MyAppState extends State<MyApp> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            bool res = false;
+            bool? res = false;
             if (_currentInput.port == AudioPort.receiver) {
               res = await FlutterAudioManager.changeToSpeaker();
               print("change to speaker:$res");
