@@ -20,11 +20,11 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> init() async {
-    FlutterAudioManager.setListener(() async {
-      print("-----changed-------");
-      await _getInput();
-      setState(() {});
-    });
+    // FlutterAudioManager.setListener(() async {
+    //   print("-----changed-------");
+    //   await _getInput();
+    //   setState(() {});
+    // });
 
     await _getInput();
     if (!mounted) return;
@@ -36,6 +36,9 @@ class _MyAppState extends State<MyApp> {
     print("current:$_currentInput");
     _availableInputs = await FlutterAudioManager.getAvailableInputs();
     print("available $_availableInputs");
+    setState(() {
+
+    });
   }
 
   @override
