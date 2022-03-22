@@ -1,5 +1,6 @@
 package com.yung.flutter_audio_manager;
 
+import android.os.Build;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -34,10 +35,10 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
         channel = new MethodChannel(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "flutter_audio_manager");
         channel.setMethodCallHandler(new FlutterAudioManagerPlugin());
-//        AudioChangeReceiver receiver = new AudioChangeReceiver(listener);
-//        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+        AudioChangeReceiver receiver = new AudioChangeReceiver(listener);
+        IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         activeContext = flutterPluginBinding.getApplicationContext();
-//        activeContext.registerReceiver(receiver, filter);
+        activeContext.registerReceiver(receiver, filter);
         // Get an AudioManager instance
         audioManager = (AudioManager) activeContext.getSystemService(Context.AUDIO_SERVICE);
     }
@@ -52,12 +53,12 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
 //    audioManager = (AudioManager) activeContext.getSystemService(Context.AUDIO_SERVICE);
 //  }
 
-//    static AudioEventListener listener = new AudioEventListener() {
-//        @Override
-//        public void onChanged() {
-//            channel.invokeMethod("inputChanged", 1);
-//        }
-//    };
+    static AudioEventListener listener = new AudioEventListener() {
+        @Override
+        public void onChanged() {
+            channel.invokeMethod("inputChanged", 1);
+        }
+    };
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
@@ -69,10 +70,18 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
                 result.success(getAvailableInputs());
                 break;
             case "changeToReceiver":
-                result.success(changeToReceiverV2());
+                if (isApi31Android12()) {
+                    result.success(changeToReceiverV2());
+                } else {
+                    result.success(changeToReceiver());
+                }
                 break;
             case "changeToSpeaker":
-                result.success(changeToSpeakerV2());
+                if (isApi31Android12()) {
+                    result.success(changeToSpeakerV2());
+                } else {
+                    result.success(changeToSpeaker());
+                }
                 break;
             case "changeToHeadphones":
                 result.success(changeToHeadphones());
@@ -101,7 +110,7 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
         if (speakerDevice != null) {
             // Turn speakerphone ON.
             boolean result = audioManager.setCommunicationDevice(speakerDevice);
-            Log.d("dashu","changeToSpeakerV2,speakerDevice="+speakerDevice+",result="+result);
+            Log.d("dashu", "changeToSpeakerV2,speakerDevice=" + speakerDevice + ",result=" + result);
             return result;
 //          if (!result) {
             // Handle error.
@@ -113,7 +122,7 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
     }
 
     private Boolean changeToReceiverV2() {
-        Log.d("dashu","changeToReceiverV2= clear");
+        Log.d("dashu", "changeToReceiverV2= clear");
         audioManager.clearCommunicationDevice();
         return true;
     }
@@ -123,7 +132,7 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
         audioManager.stopBluetoothSco();
         audioManager.setBluetoothScoOn(false);
         audioManager.setSpeakerphoneOn(false);
-//        listener.onChanged();
+        listener.onChanged();
         return true;
     }
 
@@ -132,20 +141,28 @@ public class FlutterAudioManagerPlugin implements FlutterPlugin, MethodCallHandl
         audioManager.stopBluetoothSco();
         audioManager.setBluetoothScoOn(false);
         audioManager.setSpeakerphoneOn(true);
-//        listener.onChanged();
+        listener.onChanged();
         return true;
     }
 
     private Boolean changeToHeadphones() {
-        return changeToReceiverV2();
+        if (isApi31Android12()) {
+            return changeToReceiverV2();
+        } else {
+            return changeToReceiver();
+        }
     }
 
     private Boolean changeToBluetooth() {
         audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
         audioManager.startBluetoothSco();
         audioManager.setBluetoothScoOn(true);
-//        listener.onChanged();
+        listener.onChanged();
         return true;
+    }
+
+    private Boolean isApi31Android12() {
+        return android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
     }
 
     private List<String> getCurrentOutput() {
